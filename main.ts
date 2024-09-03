@@ -1,13 +1,72 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, PluginSettingTab, FuzzySuggestModal, FuzzyMatch, Setting, Menu, MenuItem } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
+const LocaleMap: any = {
+	edit: {
+		en: "Edit",
+		ru: "Редактировать"
+	},
+	collapsed: {
+		en: "Collapsed by default",
+		ru: "Свёрнутый по умолчанию"
+	},
+	expanded: {
+		en: "Expanded by default",
+		ru: "Развёрнутый по умолчанию"
+	},
+	removeCollapsing: {
+		en: "Remove collapsing",
+		ru: "Убрать сворачивание"
+	},
+	calloutType: {
+		en: "Callout type",
+		ru: "Тип выносного блока"
+	},
+	other: {
+		en: "Other...",
+		ru: "Другие..."
+	},
+	calloutTypePlaceholder: {
+		en: "Callout type...",
+		ru: "Введите тип выносного блока..."
+	},
+	addMetadata: {
+		en: "Add callout metadata",
+		ru: "Добавить метаданные"
+	},
+	removeMetadata: {
+		en: "Remove callout metadata",
+		ru: "Удалить метаданные"
+	},
+	clearFormatting: {
+		en: "Clear formatting",
+		ru: "Очистить форматирование"
+	},
+	calloutTypes: {
+		en: "Callout types",
+		ru: "Типы выносных блоков"
+	},
+	calloutTypesDesc: {
+		en: "Write a list of callout types (separated by commas) that should appear in context menu.",
+		ru: "Введите список типов выносных блоков, которые будут отображаться в контекстном меню (через запятую)."
+	},
+	metadataTypes: {
+		en: "Callout metadata types",
+		ru: "Типы метаданных для выносных блоков"
+	},
+	metadataTypesDesc: {
+		en: "Write a list of callout metadata types (separated by commas) that should appear in context menu.",
+		ru: "Введите список типов метаданных для выносных блоков, которые будут отображаться в контекстном меню (через запятую)."
+	}	
+}
 
 interface MyPluginSettings {
-	mySetting: string;
+	types: string;
+	metaTypes: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	types: 'note, info, tip',
+	metaTypes: "no-icon, no-title"
 }
 
 export default class MyPlugin extends Plugin {
@@ -15,67 +74,34 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+		this.registerDomEvent(document, "mouseup", (e: MouseEvent) => {
+			if (e.button == 2) {
+                this.createCalloutMenu(e)
+            }
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+		let timer: any
+		let timeoutResult = false
+		this.registerDomEvent(document, 'touchstart', (e: TouchEvent) => {
+			timer = setTimeout(() => {
+                timer = null;
+				timeoutResult = true
+            }, 500);
+		});
+		this.registerDomEvent(document, 'touchend', (e: TouchEvent) => {
+			clearTimeout(timer);
+			if (timeoutResult) {
+				this.createCalloutMenu(e)
+			}
+			timeoutResult = false
+		});
+
+
+
+
 	}
 
 	onunload() {
@@ -89,23 +115,361 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+	getPath(e: any) {
+        const getPathFromNode: any = (node: Node) => {
+            const getIndex = (node: Node) => {
+                const parent = node.parentElement || node.parentNode
+				let i = -1
+				let child;
+                while (parent && (child = parent.childNodes[++i]))
+                    if (child == node) return i;
+                return -1;
+            }
+            let parent, path = []
+            const index = getIndex(node);
+            (parent = node.parentElement || node.parentNode) && (path = getPathFromNode(parent));
+            index > -1 && path.push(node);
+            return path;
+        }
+
+        let path = e.path
+        if (!path) {
+            path = e.composedPath()
+        }
+        if (!path || path.length == 0) {
+            path = getPathFromNode(e.target)   
+        }
+        return path
+    }
+
+	createCalloutMenu(e: Event) {
+
+		const calloutNames = this.settings.types.split(",").map(m => m.trim())
+		const calloutMetadata = this.settings.metaTypes.split(",").map(m => m.trim())
+		const calloutNamesDafault = ["note", "info", "important", "tip","success","question","warning","example",
+			"quote","abstract","summary","tldr","todo","hint","check","done","question","faq","help","caution",
+			"attention","failure","fail","missing","danger","error","bug","example", "cite"]
+		
+		const path = this.getPath(e)
+        const calloutEl = path.find((el: Element) => el.classList && el.classList.contains("cm-callout"))
+
+        if (calloutEl) {
+            const calloutClasses = calloutEl.children[0].children[0].classList
+            const fold = calloutEl.children[0].children[0].getAttribute("data-callout-fold")
+            const widget = calloutEl.cmView.widget
+            const editor = widget.editor.editor
+            const lineNumStart = editor.offsetToPos(widget.start).line
+            const lineNumEnd = editor.offsetToPos(widget.end).line
+            const line = editor.getLine(lineNumStart)
+
+            const lines: string[] = []
+            for (let l = lineNumStart; l <= lineNumEnd; l++) {
+                lines.push(l)
+            }
+
+            const calloutDef = line.replace(/(.*?])(.*)/, "$1")
+            const calloutType = calloutEl.cmView.widget.getType().replace(/([^|]+)(.*)/, "$1")
+            let addingMetadata = [...calloutMetadata]
+
+            const existingMetadata = calloutMetadata.filter(m => calloutDef.includes("|" + m + "|") || calloutDef.includes("|" + m + "]"))
+            const notExistingMetadata = addingMetadata.filter(m => !calloutDef.includes("|" + m + "|") && !calloutDef.includes("|" + m + "]"))
+
+            const menu = new Menu()
+
+   
+            menu.addItem((item) => 
+                item
+                .setTitle(this.getLocalStrings().edit)
+                .onClick(() => {
+                    (e.target as any).click()
+                })
+            )
+
+            
+
+            menu.addSeparator()
+
+            // Добавить или убрать сворачивание
+            if (calloutClasses.contains("is-collapsible") && fold == "-") {
+
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().expanded)
+                    .setIcon("plus")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]-", "]+"))
+                    })
+                })
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().removeCollapsing)
+                    .setIcon("x")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]-", "]"))
+                    })
+                })
+               
+            } else if (calloutClasses.contains("is-collapsible") && fold == "+") {
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().collapsed)
+                    .setIcon("minus")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]+", "]-"))
+                    })
+                })
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().removeCollapsing)
+                    .setIcon("x")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]+", "]"))
+                    })
+                })
+            } else {
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().collapsed)
+                    .setIcon("minus")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]", "]-"))
+                    })
+                })
+                menu.addItem((item) => {
+                    item
+                    .setTitle(this.getLocalStrings().expanded)
+                    .setIcon("plus")
+                    .onClick(() => {
+                        editor.setLine(lineNumStart, line.replace("]", "]+"))
+                    }) 
+                })
+            }
+
+            menu.addSeparator()
+
+            if ((this.app as any).isMobile) {
+
+                for (const calloutName of calloutNames) {
+                    menu.addItem((item) => {
+                        const title = calloutName[0].toUpperCase() + calloutName.slice(1, calloutName.length).replace("|", " | ") 
+                        item
+                        .setTitle(title)
+                        .onClick(() => {
+                            calloutEl.cmView.widget.updateType(calloutName)
+                        })
+                        .setChecked(calloutType == calloutName)
+                    })
+                }
+
+                menu.addItem((item) => {
+                    const title = this.getLocalStrings().other
+                    item
+                    .setTitle(title)
+                    .onClick(async() => {
+                        const defCalloutName = await this.calloutSuggester(calloutNamesDafault)
+                        calloutEl.cmView.widget.updateType(defCalloutName)
+                    })
+                })
+
+                menu.addSeparator()
+
+                if (notExistingMetadata.length > 0) {
+                    for (const metaName of notExistingMetadata) {
+                        menu.addItem((item) => {
+                            const title = metaName[0].toUpperCase() + metaName.slice(1, metaName.length)
+                                .replace("|", " | ") 
+                            item
+                            .setTitle(title)
+                            .setIcon("plus")
+                            .onClick(() => {
+                                editor.setLine(lineNumStart, line.replace("]", "|" + metaName + "]"))
+                            })
+                        })
+                    } 
+                }
+
+                menu.addSeparator()
+
+                if (existingMetadata.length > 0) {
+                    for (const metaName of existingMetadata) {
+                        menu.addItem((item) => {
+                            const title = metaName[0].toUpperCase() + metaName.slice(1, metaName.length)
+                                .replace("|", " | ") 
+                            item
+                            .setTitle(title)
+                            .setIcon("minus")
+                            .onClick(() => {
+                                editor.setLine(lineNumStart, line.replace("|" + metaName, ""))
+                            })
+                        })
+                    } 
+                }
+            } else {
+
+                menu.addItem((item) => { 
+                    item.setTitle(this.getLocalStrings().calloutType)
+                    const sub = (item as any).setSubmenu()
+                    sub.dom.classList.add("callout-menu")
+                    for (const calloutName of calloutNames) {
+                        sub.addItem((item: MenuItem) => {
+                            const title = calloutName[0].toUpperCase() + calloutName.slice(1, calloutName.length).replace("|", " | ") 
+                            item
+                            .setTitle(title)
+                            .onClick(() => {
+                                calloutEl.cmView.widget.updateType(calloutName)
+                            })
+                            .setChecked(calloutType == calloutName)
+                        })
+                    } 
+
+                    sub.addItem((item: MenuItem) => {
+                        const title = this.getLocalStrings().other
+                        item
+                        .setTitle(title)
+                        .onClick(async() => {
+                            const defCalloutName = await this.calloutSuggester(calloutNamesDafault)
+                            calloutEl.cmView.widget.updateType(defCalloutName)
+                        })
+                    })
+                })
+
+                if (notExistingMetadata.length > 0) {
+                    menu.addItem((item) => { 
+                        item.setTitle(this.getLocalStrings().addMetadata)
+                        const sub = (item as any).setSubmenu()
+                        sub.dom.classList.add("callout-menu")
+                        for (const metaName of notExistingMetadata) {
+                            sub.addItem((item: MenuItem) => {
+                                const title = metaName[0].toUpperCase() + metaName.slice(1, metaName.length)
+                                    .replace("|", " | ") 
+                                item
+                                .setTitle(title)
+                                .onClick(() => {
+                                    editor.setLine(lineNumStart, line.replace("]", "|" + metaName + "]"))
+                                })
+                            })
+                        } 
+                    })
+                }
+
+                if (existingMetadata.length > 0) {
+                    menu.addItem((item) => { 
+                        item.setTitle(this.getLocalStrings().removeMetadata)
+                        const sub = (item as any).setSubmenu()
+                        sub.dom.classList.add("callout-menu")
+                        for (const metaName of existingMetadata) {
+                            sub.addItem((item: MenuItem) => {
+                                const title = metaName[0].toUpperCase() + metaName.slice(1, metaName.length)
+                                    .replace("|", " | ") 
+                                item
+                                .setTitle(title)
+                                .onClick(() => {
+                                    editor.setLine(lineNumStart, line.replace("|" + metaName, ""))
+                                })
+                            })
+                        } 
+                    })
+                }
+            }
+
+            menu.addSeparator()
+
+
+            menu.addItem((item) => 
+                item
+                .setTitle(this.getLocalStrings().clearFormatting)
+                .setIcon("eraser")
+                .onClick(() => {
+                    for (const l of lines) {
+                        const line = editor.getLine(l)
+                        let newLine = line.replace(">", "")
+                        if (l == lineNumStart) {
+                            newLine = newLine.replace("]+", "]").replace("]-", "]").replace(/(\[.*?\])(.*)/, "$2").replace(/^ /, "")
+                        }
+                        newLine = newLine.replace(/^ /, "")
+                        editor.setLine(l, newLine)
+                    }
+                })
+            )
+
+            
+            
+            menu.showAtMouseEvent((e as MouseEvent))
+			//@ts-ignore
+            menu.dom.classList.add("callout-menu")
+
+            
+
+            setTimeout(() => {
+                const oldMenu = document.querySelectorAll(".menu:not(.callout-menu)")
+                oldMenu.forEach(menu => {
+					if (menu.parentNode) {
+						menu.parentNode.removeChild(menu);
+					}
+                })
+            }, 10)
+
+
+        }
+
+	}
+
+
+	async calloutSuggester(values: string[]) {
+		const placeholder = this.getLocalStrings().calloutTypePlaceholder
+		const data = new Promise((resolve, reject) => {
+			new Suggest(this.app, resolve, reject, values, placeholder).open()  
+		})
+		return data
+	}
+
+	getLocalStrings() {
+		const lang: string = window.localStorage.getItem('language') ?? "en"
+		const localStrings = {...LocaleMap}
+		for (const key in localStrings) {
+			const stringValues = localStrings[key]
+			localStrings[key] = stringValues[lang] ?? stringValues["en"]
+		}
+		return localStrings
+	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+
+class Suggest extends FuzzySuggestModal<string> {
+	resolve: any
+	reject:any
+	values: string[] 
+	placeholder: string
+	constructor(app: App, resolve: any, reject:any, values: string[], placeholder: string) {
+	  super(app);
+	  this.resolve = resolve
+	  this.reject = reject
+	  this.values = values
+	  this.placeholder = placeholder
 	}
+	getItems() {
+		return this.values
+	}
+	getItemText(val: string) {
+		this.setPlaceholder(this.placeholder)
+		return val
+	}
+	renderSuggestion(val: FuzzyMatch<string>, el: Element) {
+		const text = val.item
+		el.createEl("div", {text: text})
+	}
+	onChooseItem(val: string) {
+		this.resolve(val)
+	}   
 }
+
+
+
+
+
 
 class SampleSettingTab extends PluginSettingTab {
 	plugin: MyPlugin;
@@ -121,14 +485,23 @@ class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName(this.plugin.getLocalStrings().calloutTypes)
+			.setDesc(this.plugin.getLocalStrings().calloutTypesDesc)
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.types)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.types = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+		.setName(this.plugin.getLocalStrings().metadataTypes)
+		.setDesc(this.plugin.getLocalStrings().metadataTypesDesc)
+		.addTextArea(text => text
+			.setValue(this.plugin.settings.metaTypes)
+			.onChange(async (value) => {
+				this.plugin.settings.metaTypes = value;
+				await this.plugin.saveSettings();
+			}));
 	}
 }

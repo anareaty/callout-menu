@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "callout-menu",
+	"name": "Callout menu",
 	"version": "1.0.1",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"minAppVersion": "1.6.7",
+	"description": "Adds some extra options to callouts context menu and allows you to add your own custom callouts.",
+	"author": "Anareaty",
+	"authorUrl": "https://github.com/anareaty",
+	"fundingUrl": "",
 	"isDesktopOnly": false
 }

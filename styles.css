@@ -1,8 +1,12 @@
-/*
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+body:has(.menu.callout-menu) .menu:not(.callout-menu) {
+    display: none;
+}
 
-If your plugin does not need CSS, delete this file.
+.callout[data-callout-metadata*="no-icon"] .callout-icon {
+    display: none;
+}
 
-*/
+.callout[data-callout-metadata*="no-title"] .callout-title {
+    display: none;
+}
