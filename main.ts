@@ -228,7 +228,7 @@ export default class CalloutMenuPlugin extends Plugin {
 
 			menu.addItem((item) =>
 				item.setTitle(this.getLocalStrings().edit).onClick(() => {
-					(e.target as any).click();
+					(e.target as HTMLElement).click();
 				})
 			);
 
@@ -304,8 +304,8 @@ export default class CalloutMenuPlugin extends Plugin {
 			}
 
 			menu.addSeparator();
-
-			if ((this.app as any).isMobile) {
+			//@ts-ignore
+			if (this.app.isMobile) {
 				for (const calloutName of calloutNames) {
 					menu.addItem((item) => {
 						const title =
@@ -377,7 +377,8 @@ export default class CalloutMenuPlugin extends Plugin {
 			} else {
 				menu.addItem((item) => {
 					item.setTitle(this.getLocalStrings().calloutType);
-					const sub = (item as any).setSubmenu();
+					//@ts-ignore
+					const sub = item.setSubmenu();
 					sub.dom.classList.add("callout-menu");
 					for (const calloutName of calloutNames) {
 						sub.addItem((item: MenuItem) => {
@@ -410,7 +411,8 @@ export default class CalloutMenuPlugin extends Plugin {
 				if (notExistingMetadata.length > 0) {
 					menu.addItem((item) => {
 						item.setTitle(this.getLocalStrings().addMetadata);
-						const sub = (item as any).setSubmenu();
+						//@ts-ignore
+						const sub = item.setSubmenu();
 						sub.dom.classList.add("callout-menu");
 						for (const metaName of notExistingMetadata) {
 							sub.addItem((item: MenuItem) => {
@@ -433,7 +435,8 @@ export default class CalloutMenuPlugin extends Plugin {
 				if (existingMetadata.length > 0) {
 					menu.addItem((item) => {
 						item.setTitle(this.getLocalStrings().removeMetadata);
-						const sub = (item as any).setSubmenu();
+						//@ts-ignore
+						const sub = item.setSubmenu();
 						sub.dom.classList.add("callout-menu");
 						for (const metaName of existingMetadata) {
 							sub.addItem((item: MenuItem) => {
