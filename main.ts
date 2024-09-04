@@ -92,19 +92,14 @@ export default class CalloutMenuPlugin extends Plugin {
 		});
 
 		let timer: any;
-		let timeoutResult = false;
 		this.registerDomEvent(document, "touchstart", (e: TouchEvent) => {
 			timer = setTimeout(() => {
 				timer = null;
-				timeoutResult = true;
+				this.createCalloutMenu(e)
 			}, 500);
 		});
 		this.registerDomEvent(document, "touchend", (e: TouchEvent) => {
 			clearTimeout(timer);
-			if (timeoutResult) {
-				this.createCalloutMenu(e);
-			}
-			timeoutResult = false;
 		});
 	}
 
