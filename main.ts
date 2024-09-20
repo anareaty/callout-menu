@@ -7,6 +7,7 @@ import {
 	Setting,
 	Menu,
 	MenuItem,
+	Platform
 } from "obsidian";
 
 const LocaleMap: any = {
@@ -304,8 +305,7 @@ export default class CalloutMenuPlugin extends Plugin {
 			}
 
 			menu.addSeparator();
-			//@ts-ignore
-			if (this.app.isMobile) {
+			if (Platform.isMobile) {
 				for (const calloutName of calloutNames) {
 					menu.addItem((item) => {
 						const title =
