@@ -95,7 +95,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
         callout.getAttribute(
             "data-callout-fold"
         );
-    const widget = calloutEl.cmView.widget;
+    const widget = (calloutEl.cmTile?.widget ?? calloutEl.cmView?.widget) as any;
     const editor = widget.editor.editor;
     const lineNumStart = editor.offsetToPos(widget.start).line;
     const lineNumEnd = editor.offsetToPos(widget.end).line;
@@ -107,7 +107,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
     }
 
     const calloutDef = line.replace(/(.*?])(.*)/, "$1");
-    const calloutType = calloutEl.cmView.widget
+    const calloutType = widget
         .getType()
         .replace(/([^|]+)(.*)/, "$1");
     let addingMetadata = [...calloutMetadata];
@@ -245,7 +245,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                 item.setTitle(title)
                     .setSection("custom-type")
                     .onClick(() => {
-                        calloutEl.cmView.widget.updateType(calloutName);
+                        calloutEl.cmTile?.widget?.updateType(calloutName);
                     })
                     .setChecked(calloutType == calloutName);
             });
@@ -314,7 +314,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                             .replace("|", " | ");
                     item.setTitle(title)
                         .onClick(() => {
-                            calloutEl.cmView.widget.updateType(
+                            calloutEl.cmTile?.widget?.updateType(
                                 calloutName
                             );
                         })
@@ -330,7 +330,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                         plugin,
                         calloutNamesDafault
                     );
-                    calloutEl.cmView.widget.updateType(defCalloutName);
+                    calloutEl.cmTile?.widget?.updateType(defCalloutName);
                 });
             });
 
