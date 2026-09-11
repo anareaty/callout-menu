@@ -8,10 +8,11 @@ import { CMSettings, CMSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 
 export default class CalloutMenuPlugin extends Plugin {
-	settings: CMSettings;
-	uninstallCalloutMenuPatch: any
+	declare settings: CMSettings;
+	uninstallCalloutMenuPatch!: () => void
 
 	async onload() {
+		await this.loadSettings();
 		let locale = "en"
 		if (getLanguage) {
 			locale = getLanguage()
@@ -19,7 +20,7 @@ export default class CalloutMenuPlugin extends Plugin {
 			locale = window.localStorage.language
 		}
     	i18n.setLocale(locale);
-		await this.loadSettings();
+		
 		patchMenu(this)
 		this.addSettingTab(new CMSettingTab(this.app, this));
 	}
