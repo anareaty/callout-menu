@@ -8,7 +8,7 @@ import { Suggest } from './suggestModal';
 export const patchMenu = async (plugin: CalloutMenuPlugin) => {
   plugin.uninstallCalloutMenuPatch = around(Menu.prototype, {
     showAtMouseEvent(old) {
-      return dedupe("cm-patch-menu-around-key", old, function(...args) {
+      return dedupe("cm-patch-menu-around-key", old, function(this: Menu, ...args) {
 		const e = args[0]
 		const target = e.target as HTMLElement
 
@@ -244,7 +244,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                 item.setTitle(title)
                     .setSection("custom-type")
                     .onClick(() => {
-                        calloutEl.cmTile?.widget?.updateType(calloutName);
+                        widget?.updateType(calloutName);
                     })
                     .setChecked(calloutType == calloutName);
             });
@@ -313,7 +313,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                             .replace("|", " | ");
                     item.setTitle(title)
                         .onClick(() => {
-                            calloutEl.cmTile?.widget?.updateType(
+                            widget?.updateType(
                                 calloutName
                             );
                         })
@@ -329,7 +329,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                         plugin,
                         calloutNamesDafault
                     );
-                    calloutEl.cmTile?.widget?.updateType(defCalloutName);
+                    widget?.updateType(defCalloutName);
                 });
             });
 
