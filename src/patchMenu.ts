@@ -8,17 +8,16 @@ import { Suggest } from './suggestModal';
 export const patchMenu = async (plugin: CalloutMenuPlugin) => {
   plugin.uninstallCalloutMenuPatch = around(Menu.prototype, {
     showAtMouseEvent(old) {
-      return dedupe("pp-patch-menu-around-key", old, function(...args) {
-		let e = args[0]
-		let target = e.target as HTMLElement
-		let menu = this
+      return dedupe("cm-patch-menu-around-key", old, function(...args) {
+		const e = args[0]
+		const target = e.target as HTMLElement
 
         if (target.closest(".cm-callout")) {
-            editCalloutMenu(plugin, menu, target)
+            editCalloutMenu(plugin, this, target)
 
         }
         
-        return old && old.apply(menu, args)
+        return old && old.apply(this, args)
       })
     }    
   })
@@ -110,7 +109,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
     const calloutType = widget
         .getType()
         .replace(/([^|]+)(.*)/, "$1");
-    let addingMetadata = [...calloutMetadata];
+    const addingMetadata = [...calloutMetadata];
 
     const existingMetadata = calloutMetadata.filter(
         (m) =>
@@ -147,7 +146,7 @@ const editCalloutMenu = async (plugin: CalloutMenuPlugin, menu: Menu, target: HT
                 item.setTitle(i18n.t("copyLinkPath"))
                 .setSection('clipboard')
                 .onClick(() => {
-                    let linkPath = link.getAttribute("data-href") || ""
+                    const linkPath = link.getAttribute("data-href") || ""
                     navigator.clipboard.writeText(linkPath)
                 })
             );

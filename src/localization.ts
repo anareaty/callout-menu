@@ -7,7 +7,7 @@ const locales: Record<string, any> = {
 };
 
 export class LocalizationService {
-  private currentLocale: string = 'en';
+  private currentLocale = 'en';
 
   setLocale(locale: string) {
     if (locales[locale]) this.currentLocale = locale;

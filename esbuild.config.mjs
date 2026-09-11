@@ -1,5 +1,4 @@
 import esbuild from "esbuild";
-import process from "process";
 import builtins from "builtin-modules";
 
 const banner =
